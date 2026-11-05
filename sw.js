@@ -1,5 +1,5 @@
 // Offline cache: stale-while-revalidate for the app shell. Bump V when files change.
-const V = 'dartcounter-v3';
+const V = 'dartcounter-v4';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'fonts/anton-latin.woff', 'fonts/inter-latin-var.woff',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
