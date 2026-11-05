@@ -1,456 +1,492 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#14110a">
-<title>Dart-Zähler</title>
+<meta name="theme-color" content="#0a1612">
+<title>Dart Counter</title>
 <style>
-@font-face{font-family:'Bungee';src:url('bungee.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Anton';src:url('fonts/anton-latin.woff') format('woff');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Inter';src:url('fonts/inter-latin-var.woff') format('woff');font-weight:100 900;font-style:normal;font-display:swap}
 :root{
-  --sans:'Avenir Next','Helvetica Neue',Arial,sans-serif;
-  --display:'Bungee','Avenir Next','Helvetica Neue',Arial,sans-serif;
-  --bg:#14110a; --card:#1f1b11; --card2:#2a2517; --line:#3a3320;
-  --text:#f6f1e3; --muted:#a79f86; --accent:#fcba01; --accent-ink:#1a1400;
-  --good:#5ec26a; --bad:#ef5b4c;
+  --bg:#0a1612; --low:#0d1b16; --surf:#13241e; --high:#192e26; --top:#213a30; --line:#2c443b;
+  --brass:#e5a93c; --brass-hi:#f3ba4c; --ink:#1f1400;
+  --text:#eef0e6; --muted:#8fa89c; --dim:#5f7a6e;
+  --green:#27ae60; --green-bg:#10301f; --red:#b8352a;
+  --display:'Anton','Impact','Arial Narrow',sans-serif;
+  --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans)}
-body{min-height:100dvh;padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 16px);max-width:560px;margin:0 auto}
-h1{font-family:var(--display);font-weight:400;font-size:1.5rem;letter-spacing:.02em;margin:20px 0 4px}
-.sub{color:var(--muted);margin:0 0 18px;font-size:.95rem}
-button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulation}
+body{min-height:100dvh;max-width:480px;margin:0 auto;padding-bottom:calc(env(safe-area-inset-bottom) + 20px)}
+button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulation;background:none}
+button:disabled{opacity:.35;cursor:default}
 .hidden{display:none!important}
+svg{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.d{font-family:var(--display);font-weight:400;text-transform:uppercase;letter-spacing:.03em}
+.lbl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 
-/* Setup */
-.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
-.panel h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px;font-weight:600}
-.seg{display:flex;gap:8px;flex-wrap:wrap}
-.seg button{flex:1;min-width:64px;padding:12px 8px;border-radius:12px;background:var(--card2);border:1px solid var(--line);font-weight:600}
-.seg button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.names input{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card2);color:var(--text);font:inherit;margin-bottom:8px}
-.names input:focus{outline:2px solid var(--accent);outline-offset:1px}
-.primary{font-family:var(--display);font-weight:400;letter-spacing:.03em;width:100%;padding:16px;border-radius:14px;background:var(--accent);color:var(--accent-ink);font-weight:800;font-size:1.05rem}
-.ghost{padding:10px 14px;border-radius:10px;background:var(--card2);border:1px solid var(--line);font-weight:600;font-size:.9rem}
+/* header */
+.hdr{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;background:rgba(10,22,18,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.hdr h1{margin:0;font-size:28px;line-height:1;color:var(--brass);font-family:var(--display);font-weight:400;letter-spacing:.03em;text-transform:uppercase}
+.hdr .ic{width:40px;height:40px;display:grid;place-items:center;font-size:22px;border-radius:12px}
+.hdr .ic:active{background:var(--high)}
+.hdr .sp{width:40px}
 
-/* Game */
-.top{display:flex;justify-content:space-between;align-items:center;margin:12px 0}
-.top .info{color:var(--muted);font-size:.85rem}
-.players{display:grid;gap:10px;margin-bottom:12px}
-.players.n3,.players.n4{grid-template-columns:1fr 1fr}
-.pl{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:12px 14px;position:relative;transition:border-color .15s}
-.pl.active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(252,186,1,.15)}
-.pl .name{font-weight:700;display:flex;justify-content:space-between;gap:8px;align-items:center}
-.pl .legs{font-size:.8rem;color:var(--muted);font-weight:600}
-.pl .score{font-family:var(--display);font-size:3.2rem;font-weight:400;line-height:1.05;font-variant-numeric:tabular-nums}
-.players.n3 .score,.players.n4 .score{font-size:2.4rem}
-.pl .stats{display:flex;gap:12px;color:var(--muted);font-size:.78rem;margin-top:4px;flex-wrap:wrap}
-.pl .co{margin-top:6px;font-size:.85rem;color:var(--accent);font-weight:700;min-height:1.2em}
-.pl .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:none}
-.pl.active .dot{display:inline-block}
+.wrap{padding:14px}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+.card .t{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.card .t b{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.card .t b svg{color:var(--brass);font-size:16px}
+.card .t span{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.card .t span.g{color:var(--green)}
 
-.visit{display:flex;gap:8px;margin-bottom:12px}
-.visit .d{flex:1;background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:10px;text-align:center;font-weight:700;min-height:48px;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
-.visit .d.filled{border-style:solid;border-color:var(--accent)}
-.visit .d.bust{border-color:var(--bad);color:var(--bad)}
-.visit .tot{font-family:var(--display);font-weight:400;flex:0 0 74px;background:var(--accent);color:var(--accent-ink);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.2rem}
+.seg{display:flex;gap:8px}
+.seg button{flex:1;min-height:52px;border-radius:12px;background:var(--high);color:var(--muted);font-family:var(--display);font-size:26px;letter-spacing:.03em;text-transform:uppercase;transition:transform .05s}
+.seg.sm button{min-height:46px;font-size:22px}
+.seg button.on{background:var(--brass);color:var(--ink)}
+.seg button:active{transform:translateY(2px)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.two .card{margin:0}
+.two .seg{gap:6px}
+.two .seg button{min-height:46px;font-size:22px;border-radius:10px}
 
-.mult{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
-.mult button{padding:12px;border-radius:12px;background:var(--card2);border:1px solid var(--line);font-weight:700}
-.mult button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.pad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.pad button{font-family:var(--display);font-weight:400;padding:14px 0;border-radius:12px;background:var(--card);border:1px solid var(--line);font-weight:700;font-size:1.05rem}
-.pad button:active{background:var(--accent);color:var(--accent-ink)}
-.pad button.miss{background:#2c1a17;border-color:#4b2a25;color:#ffb3a9}
-.pad button.bull{background:#17281a;border-color:#244a2a;color:#a9e6b3}
-.pad button:disabled,.mult button:disabled{opacity:.3}
-.actions{display:flex;gap:8px;margin-top:12px}
-.actions button{flex:1}
+.roster{display:flex;flex-direction:column;gap:8px}
+.rrow{display:flex;align-items:center;gap:10px;background:var(--high);border-radius:14px;padding:8px 10px}
+.rrow .b{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--bg);color:var(--muted);font-family:var(--display);font-size:18px;flex:none}
+.rrow:first-child .b{background:var(--brass);color:var(--ink)}
+.rrow input{flex:1;min-width:0;background:none;border:0;color:var(--text);font:600 17px var(--sans);padding:8px 0;outline:0}
+.rrow input::placeholder{color:var(--dim)}
+.rrow small{display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.rrow:first-child small{color:var(--brass)}
+.rrow .fl{flex:1;min-width:0}
+.swap{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brass);background:var(--high);padding:7px 10px;border-radius:10px}
 
-.toast{font-family:var(--display);font-weight:400;position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translateX(-50%) translateY(-80px);background:var(--bad);color:#fff;padding:10px 18px;border-radius:999px;font-weight:800;transition:transform .2s;z-index:10}
+.cta{width:100%;min-height:60px;border-radius:14px;background:var(--brass);color:var(--ink);font-family:var(--display);font-size:26px;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 0 #8a6218;transition:transform .05s,box-shadow .05s}
+.cta:active{transform:translateY(3px);box-shadow:0 1px 0 #8a6218}
+.cta.alt{background:var(--high);color:var(--text);box-shadow:none;border:1px solid var(--line);font-size:18px;min-height:52px}
+.cta.alt:active{transform:none;background:var(--top)}
+.cta svg{font-size:22px}
+
+/* live */
+.banner{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--low);border-bottom:1px solid var(--line)}
+.banner .l{display:flex;align-items:center;gap:10px}
+.banner .dot{width:8px;height:8px;border-radius:50%;background:var(--brass)}
+.banner b{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--brass);font-weight:700}
+.banner span{font-size:11px;color:var(--muted);font-weight:600}
+.banner .nb{padding:8px 12px;border-radius:10px;background:var(--high);border:1px solid var(--line);color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+
+.players{padding:12px 14px 0;display:flex;flex-direction:column;gap:8px}
+.pl{position:relative;background:var(--surf);border:1px solid var(--line);border-radius:18px;padding:12px 14px;opacity:.85}
+.pl.active{opacity:1;border:2px solid var(--brass);box-shadow:0 0 16px rgba(229,169,60,.25),0 4px 0 #000;padding:11px 13px}
+.pl .row1{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px}
+.pl .nm{display:flex;align-items:center;gap:8px;font-family:var(--display);font-size:22px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);min-width:0}
+.pl .nm i{width:10px;height:10px;border-radius:50%;background:var(--dim);flex:none}
+.pl.active .nm{color:var(--text)}
+.pl.active .nm i{background:var(--brass);box-shadow:0 0 8px var(--brass)}
+.pl .nm em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl .tag{position:absolute;top:-9px;right:12px;background:var(--brass);color:var(--ink);font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:2px 9px;border-radius:99px}
+.pl .wait{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.chip{display:flex;align-items:center;gap:6px;background:var(--brass);color:var(--ink);padding:4px 9px;border-radius:9px;font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+.chip svg{font-size:13px}
+.pl .row2{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.pl .sc{font-family:var(--display);font-size:38px;line-height:1.05;color:var(--muted);letter-spacing:.01em;font-variant-numeric:tabular-nums}
+.pl.active .sc{font-size:66px;line-height:1;color:var(--brass)}
+.stats{display:flex;align-items:center;background:var(--low);border:1px solid var(--line);border-radius:12px;padding:5px 10px;gap:10px}
+.stats div{display:flex;flex-direction:column;align-items:center;min-width:34px}
+.stats span{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.stats b{font-size:16px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.pl:not(.active) .stats b{color:var(--muted);font-size:14px}
+.stats u{width:1px;height:24px;background:var(--line)}
+.stats .hi{color:var(--brass)}
+
+.visit{margin:10px 14px 0;display:flex;align-items:center;gap:8px;background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:8px}
+.visit .vt{display:flex;flex-direction:column;flex:0 0 62px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);line-height:1.3;padding-left:4px}
+.visit .vt b{color:var(--text);font-size:11px}
+.slot{flex:1;min-height:56px;border-radius:12px;border:1px dashed var(--line);background:var(--low);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+.slot small{font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--dim)}
+.slot b{font-family:var(--display);font-weight:400;font-size:24px;line-height:1.1;color:var(--dim)}
+.slot.f{border:1px solid var(--brass);background:var(--high)}
+.slot.f b{color:var(--text)}
+.slot.nx{border:1px solid rgba(229,169,60,.6);background:var(--green-bg)}
+.slot.bust{border-color:var(--red);background:#2b1210}
+.slot.bust b{color:#ff8a7d}
+.tot{flex:0 0 62px;min-height:56px;border-radius:12px;background:var(--brass);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.tot small{font-size:9px;font-weight:800;letter-spacing:.1em}
+.tot b{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.05}
+.tot.bust{background:var(--red);color:#fff}
+.tot.bust b{font-size:20px}
+
+.mult{margin:10px 14px 0;display:flex;background:var(--low);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
+.mult button{flex:1;min-height:46px;border-radius:10px;font-family:var(--display);font-size:22px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.mult button.on{background:var(--brass);color:var(--ink)}
+.mult button.on.t{background:var(--brass-hi)}
+
+.pad{margin:10px 14px 0;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.pad button{min-height:56px;border-radius:12px;background:var(--surf);border:1px solid var(--line);font-family:var(--display);font-size:28px;color:var(--text);transition:transform .05s}
+.pad button:active:not(:disabled){background:var(--brass);color:var(--ink);transform:translateY(2px)}
+.pad .sp{grid-column:span 1}
+.pad .wide{grid-column:span 5;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:0;padding:0;border:0;background:none;min-height:0}
+.pad .wide button{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:62px;line-height:1.05;font-size:28px}
+.pad .wide button small{font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.14em;opacity:.8}
+.k25,.kbull{background:var(--green)!important;border-color:var(--green)!important;color:#fff!important}
+.kmiss{background:var(--red)!important;border-color:var(--red)!important;color:#fff!important}
+.pad .wide button:active:not(:disabled){filter:brightness(1.25);transform:translateY(2px)}
+
+.acts{margin:12px 14px 0;display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
+.acts .cta{min-height:56px;font-size:22px}
+.acts .cta.alt{font-size:22px;min-height:56px;border:1px solid var(--line)}
+
+/* toast */
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 64px);transform:translateX(-50%) translateY(-120px);background:var(--red);color:#fff;font-family:var(--display);font-size:24px;letter-spacing:.06em;padding:8px 22px;border-radius:99px;z-index:60;transition:transform .2s;text-transform:uppercase;white-space:nowrap}
 .toast.show{transform:translateX(-50%) translateY(0)}
-.toast.ok{background:var(--good);color:#06240b}
+.toast.ok{background:var(--brass);color:var(--ink)}
 
-.overlay{position:fixed;inset:0;background:rgba(10,8,3,.88);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20}
-.overlay .box{background:var(--card);border:1px solid var(--accent);border-radius:20px;padding:22px;max-width:420px;width:100%;text-align:center}
-.overlay h2{font-family:var(--display);font-weight:400;margin:0 0 6px;font-size:1.6rem}
-.overlay table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.9rem}
-.overlay td,.overlay th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right}
-.overlay td:first-child,.overlay th:first-child{text-align:left}
-.overlay th{color:var(--muted);font-weight:600;font-size:.75rem}
-.overlay .row{display:flex;gap:8px}
-.overlay .row button{flex:1}
+/* winner */
+.win{position:fixed;inset:0;z-index:50;background:var(--bg);overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom) + 24px)}
+.win .in{max-width:480px;margin:0 auto}
+.hero{position:relative;overflow:hidden;background:var(--surf);border:1px solid var(--line);border-radius:22px;padding:22px 14px 14px;text-align:center;margin-bottom:12px}
+.hero:before{content:"";position:absolute;left:0;right:0;top:0;height:6px;background:linear-gradient(90deg,var(--brass),var(--green))}
+.medal{width:84px;height:84px;margin:0 auto 10px;border-radius:50%;background:var(--high);display:grid;place-items:center;color:var(--brass);font-size:42px}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--low);border:1px solid var(--line);color:var(--brass);padding:6px 12px;border-radius:99px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.hero h2{margin:8px 0 8px;font-family:var(--display);font-weight:400;font-size:64px;line-height:1;color:var(--brass);text-transform:uppercase;letter-spacing:.02em;word-break:break-word}
+.hero .sub{display:inline-block;background:var(--low);border-radius:10px;padding:7px 16px;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.res{display:grid;gap:8px;margin-top:14px}
+.res .r{display:flex;align-items:center;gap:10px;background:var(--high);border-radius:14px;padding:10px 12px;text-align:left}
+.res .r .b{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--bg);color:var(--muted);font-family:var(--display);font-size:18px;flex:none}
+.res .r.w .b{background:var(--brass);color:var(--ink)}
+.res .r .n{flex:1;min-width:0;font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.res .r .n small{display:block;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.res .r.w .n small{color:var(--green)}
+.res .r .c{font-family:var(--display);font-size:30px;color:var(--muted)}
+.res .r.w .c{color:var(--brass)}
+.perf h3{margin:0;font-family:var(--display);font-weight:400;font-size:28px;text-transform:uppercase;letter-spacing:.02em}
+.hco{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--low);border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0 8px}
+.hco .chips{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.hco .chips i{font-style:normal;background:var(--green-bg);border:1px solid var(--green);color:var(--green);font-size:12px;font-weight:800;padding:2px 8px;border-radius:7px}
+.hco .v{font-family:var(--display);font-size:52px;line-height:1;color:var(--brass);text-align:right}
+.hco .v small{display:block;font-family:var(--sans);font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--green)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile{background:var(--low);border:1px solid var(--line);border-radius:14px;padding:12px}
+.tile .v{display:flex;align-items:baseline;justify-content:space-between;margin-top:4px}
+.tile .v b{font-family:var(--display);font-weight:400;font-size:38px;line-height:1;color:var(--brass)}
+.tile .v span{font-size:12px;font-weight:600;color:var(--muted)}
+.bar{height:6px;border-radius:9px;background:var(--bg);margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brass);border-radius:9px}
+.winacts{display:grid;gap:8px;margin-top:12px}
+.ghost{background:none;border:0;color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:14px;display:flex;align-items:center;justify-content:center;gap:8px;width:100%}
 </style>
 </head>
 <body>
 
-<section id="setup">
-  <h1>🎯 Dart-Zähler</h1>
-  <p class="sub">Spiel einrichten und los geht’s.</p>
+<header class="hdr">
+  <button class="ic" id="backBtn" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+  <h1 id="hdrTitle">Match Setup</h1>
+  <span class="sp"></span>
+</header>
 
-  <div class="panel">
-    <h2>Spielmodus</h2>
-    <div class="seg" id="modeSeg">
-      <button data-v="301">301</button>
-      <button data-v="501" class="on">501</button>
-      <button data-v="701">701</button>
+<!-- SETUP -->
+<main id="setup" class="wrap">
+  <div class="card">
+    <div class="t"><b><svg viewBox="0 0 24 24"><path d="M4 22V4M4 4h13l-2 4 2 4H4"/></svg>Game mode</b><span>Standard legs</span></div>
+    <div class="seg" id="modeSeg"><button data-v="301">301</button><button data-v="501" class="on">501</button><button data-v="701">701</button></div>
+  </div>
+
+  <div class="card">
+    <div class="t"><b><svg viewBox="0 0 24 24"><path d="M4 22V4M4 4h13l-2 4 2 4H4"/></svg>Checkout rule</b><span class="g">Official PDC rule</span></div>
+    <div class="seg" id="outSeg"><button data-v="double" class="on">Double-Out</button><button data-v="straight">Straight-Out</button></div>
+  </div>
+
+  <div class="two" style="margin-bottom:12px">
+    <div class="card">
+      <div class="t"><b><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg>Legs to win</b></div>
+      <div class="seg" id="legSeg"><button data-v="1">1</button><button data-v="2">2</button><button data-v="3" class="on">3</button><button data-v="5">5</button></div>
+    </div>
+    <div class="card">
+      <div class="t"><b><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M16 4.5a3.5 3.5 0 0 1 0 7M18 15c2.5.7 4 2.5 4 6"/></svg>Players</b></div>
+      <div class="seg" id="plSeg"><button data-v="1">1</button><button data-v="2" class="on">2</button><button data-v="3">3</button><button data-v="4">4</button></div>
     </div>
   </div>
 
-  <div class="panel">
-    <h2>Checkout</h2>
-    <div class="seg" id="outSeg">
-      <button data-v="double" class="on">Double-Out</button>
-      <button data-v="straight">Straight-Out</button>
-    </div>
+  <div class="card">
+    <div class="t"><b><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Throw order &amp; roster</b><button class="swap" id="swapBtn"><svg viewBox="0 0 24 24"><path d="M7 4v16M7 4L3 8M7 4l4 4M17 20V4M17 20l-4-4M17 20l4-4"/></svg>Swap</button></div>
+    <div class="roster" id="roster"></div>
   </div>
 
-  <div class="panel">
-    <h2>Gewinne (First to)</h2>
-    <div class="seg" id="legSeg">
-      <button data-v="1" class="on">1 Leg</button>
-      <button data-v="2">2 Legs</button>
-      <button data-v="3">3 Legs</button>
-      <button data-v="5">5 Legs</button>
-    </div>
-  </div>
+  <button class="cta" id="startBtn"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><path d="M7 4l13 8-13 8z"/></svg>Start game</button>
+</main>
 
-  <div class="panel">
-    <h2>Spieler</h2>
-    <div class="seg" id="plSeg" style="margin-bottom:12px">
-      <button data-v="1">1</button>
-      <button data-v="2" class="on">2</button>
-      <button data-v="3">3</button>
-      <button data-v="4">4</button>
-    </div>
-    <div class="names" id="names"></div>
-  </div>
-
-  <button class="primary" id="startBtn">Spiel starten</button>
-</section>
-
-<section id="game" class="hidden">
-  <div class="top">
-    <div class="info" id="gameInfo"></div>
-    <button class="ghost" id="menuBtn">Neues Spiel</button>
+<!-- LIVE -->
+<main id="game" class="hidden">
+  <div class="banner">
+    <div class="l"><span class="dot"></span><div><b id="gInfo"></b><span id="gLeg"></span></div></div>
+    <button class="nb" id="newBtn">New game</button>
   </div>
   <div class="players" id="players"></div>
-
   <div class="visit" id="visit"></div>
-
   <div class="mult" id="mult">
     <button data-m="1" class="on">Single</button>
     <button data-m="2">Double</button>
     <button data-m="3">Triple</button>
   </div>
   <div class="pad" id="pad"></div>
-
-  <div class="actions">
-    <button class="ghost" id="undoBtn">↶ Zurück</button>
-    <button class="ghost" id="skipBtn">Aufnahme beenden</button>
+  <div class="acts">
+    <button class="cta alt" id="undoBtn"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Undo</button>
+    <button class="cta" id="skipBtn">End visit<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
   </div>
-</section>
+</main>
+
+<!-- WINNER -->
+<div class="win hidden" id="win"><div class="in"><div class="hdr" style="position:static;justify-content:center"><h1>Match Over</h1></div><div class="wrap" id="winBody"></div></div></div>
 
 <div class="toast" id="toast"></div>
-<div class="overlay hidden" id="overlay"><div class="box" id="overlayBox"></div></div>
 
 <script>
 (() => {
   const $ = s => document.querySelector(s);
-  const KEY = 'dartzaehler.v1';
-  let cfg = { start: 501, out: 'double', legs: 1, count: 2, names: ['Spieler 1','Spieler 2','Spieler 3','Spieler 4'] };
-  let G = null;       // game state
-  let undoStack = [];
-  let mult = 1;
+  const KEY = 'dartcounter.v2';
+  const ICON = {
+    flag: '<svg viewBox="0 0 24 24"><path d="M4 22V4M4 4h13l-2 4 2 4H4"/></svg>',
+    trophy: '<svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg>',
+    undo: '<svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"/></svg>',
+    play: '<svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><path d="M7 4l13 8-13 8z"/></svg>'
+  };
+  let cfg = { start: 501, out: 'double', legs: 3, count: 2, names: ['Jack', 'Sarah', 'Player 3', 'Player 4'] };
+  let G = null, undoStack = [], mult = 1, timer = null;
 
-  /* ---------- Setup UI ---------- */
+  /* ---------- helpers ---------- */
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const later = (fn, ms) => { clearTimeout(timer); timer = setTimeout(() => { timer = null; fn(); }, ms); };
+  const label = d => d.n === 0 ? 'Miss' : d.n === 25 ? (d.m === 2 ? 'Bull' : '25') : ['', 'S', 'D', 'T'][d.m] + d.n;
+  const visitSum = () => G.visit.reduce((a, d) => a + d.v, 0);
+  const avg = p => p.darts ? (p.pts / p.darts * 3).toFixed(1) : '–';
+
+  /* ---------- setup ---------- */
   function seg(id, key, parse = v => v) {
-    const el = $(id);
-    el.addEventListener('click', e => {
+    $(id).addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
-      el.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      $(id).querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
       cfg[key] = parse(b.dataset.v);
-      if (key === 'count') renderNames();
+      if (key === 'count') renderRoster();
     });
   }
-  function syncSeg(id, val) {
-    $(id).querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === String(val)));
-  }
-  function renderNames() {
-    $('#names').innerHTML = '';
-    for (let i = 0; i < cfg.count; i++) {
-      const inp = document.createElement('input');
-      inp.value = cfg.names[i]; inp.placeholder = 'Spieler ' + (i + 1); inp.maxLength = 16;
-      inp.addEventListener('input', () => cfg.names[i] = inp.value);
-      $('#names').appendChild(inp);
-    }
-  }
-  seg('#modeSeg', 'start', Number);
-  seg('#outSeg', 'out');
-  seg('#legSeg', 'legs', Number);
-  seg('#plSeg', 'count', Number);
+  const syncSeg = (id, v) => $(id).querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === String(v)));
+  seg('#modeSeg', 'start', Number); seg('#outSeg', 'out'); seg('#legSeg', 'legs', Number); seg('#plSeg', 'count', Number);
 
-  /* ---------- Persistence ---------- */
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify({ cfg, G, undoStack })); } catch (e) {}
+  const ORD = ['First throw', 'Second throw', 'Third throw', 'Fourth throw'];
+  function renderRoster() {
+    const r = $('#roster'); r.innerHTML = '';
+    for (let i = 0; i < cfg.count; i++) {
+      const row = document.createElement('div'); row.className = 'rrow';
+      row.innerHTML = '<div class="b">P' + (i + 1) + '</div><div class="fl"><input maxlength="14" placeholder="Player ' + (i + 1) + '" aria-label="Player ' + (i + 1) + ' name"><small>' + ORD[i] + '</small></div>';
+      const inp = row.querySelector('input'); inp.value = cfg.names[i];
+      inp.addEventListener('input', () => cfg.names[i] = inp.value);
+      r.appendChild(row);
+    }
+    $('#swapBtn').classList.toggle('hidden', cfg.count < 2);
   }
+  $('#swapBtn').addEventListener('click', () => {
+    const a = cfg.names.slice(0, cfg.count); a.push(a.shift());
+    cfg.names.splice(0, cfg.count, ...a); renderRoster();
+  });
+
+  /* ---------- persistence ---------- */
+  function save() { try { localStorage.setItem(KEY, JSON.stringify({ cfg, G, undoStack })); } catch (e) {} }
   function load() {
     try {
-      const s = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (!s) return false;
-      cfg = Object.assign(cfg, s.cfg);
-      G = s.G; undoStack = s.undoStack || [];
-      return true;
+      const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (!s) return false;
+      cfg = Object.assign(cfg, s.cfg); G = s.G; undoStack = s.undoStack || []; return !!G;
     } catch (e) { return false; }
   }
 
-  /* ---------- Game logic ---------- */
+  /* ---------- game logic ---------- */
   function newGame() {
-    const names = cfg.names.slice(0, cfg.count).map((n, i) => n.trim() || 'Spieler ' + (i + 1));
+    const names = cfg.names.slice(0, cfg.count).map((n, i) => n.trim() || 'Player ' + (i + 1));
     G = {
       start: cfg.start, out: cfg.out, legsToWin: cfg.legs,
-      players: names.map(n => ({ name: n, score: cfg.start, legs: 0, pts: 0, darts: 0, best: 0, n180: 0 })),
-      leg: 1, starter: 0, cur: 0,
-      visit: [],           // darts in current visit: {m, n, v}
-      visitBust: false,
-      over: false, winner: null
+      players: names.map(n => ({ name: n, score: cfg.start, legs: 0, pts: 0, darts: 0, best: 0, n180: 0, hiCo: 0, hiCoPath: [] })),
+      leg: 1, starter: 0, cur: 0, visit: [], visitBust: false, locked: false, over: false, winner: null
     };
-    undoStack = [];
-    mult = 1; setMult(1);
-    save(); showGame();
+    undoStack = []; clearTimeout(timer); timer = null;
+    setMult(1); save(); show('game');
   }
-
-  function snapshot() { undoStack.push(JSON.stringify(G)); if (undoStack.length > 300) undoStack.shift(); }
-
-  function visitSum() { return G.visit.reduce((a, d) => a + d.v, 0); }
+  const snapshot = () => { undoStack.push(JSON.stringify(G)); if (undoStack.length > 400) undoStack.shift(); };
 
   function throwDart(n, m) {
-    if (G.over || G.visitBust) return;
-    if (n === 25 && m === 3) return;
+    if (G.over || G.visitBust || G.locked || G.visit.length >= 3) return;
     snapshot();
-    const p = G.players[G.cur];
-    const v = n * m;
-    const dart = { n, m, v };
-    const before = p.score - visitSum();
-    const rem = before - v;
-    G.visit.push(dart);
-    p.darts++;
-    const isDouble = m === 2;
+    const p = G.players[G.cur], v = n * m;
+    const before = p.score - visitSum(), rem = before - v;
+    G.visit.push({ n, m, v }); p.darts++;
     let bust = false, win = false;
     if (G.out === 'double') {
       if (rem < 0 || rem === 1) bust = true;
-      else if (rem === 0) { if (isDouble) win = true; else bust = true; }
-    } else {
-      if (rem < 0) bust = true; else if (rem === 0) win = true;
-    }
-    if (bust) {
-      G.visitBust = true;
-      toast('BUST', false);
-      render(); save();
-      setTimeout(() => endVisit(), 900);
-      return;
-    }
+      else if (rem === 0) { if (m === 2) win = true; else bust = true; }
+    } else if (rem < 0) bust = true; else if (rem === 0) win = true;
+
+    if (bust) { G.visitBust = true; toast('Bust', false); render(); save(); later(endVisit, 1000); return; }
     if (win) {
-      p.score = 0; p.pts += visitSum();
-      p.best = Math.max(p.best, visitSum());
-      legWon(); return;
+      const s = visitSum();
+      if (p.score > p.hiCo) { p.hiCo = p.score; p.hiCoPath = G.visit.map(label); }
+      p.pts += s; p.best = Math.max(p.best, s); if (s === 180) p.n180++;
+      p.score = 0; legWon(); return;
     }
-    if (G.visit.length === 3) { render(); save(); setTimeout(() => endVisit(), 350); return; }
-    mult = 1; setMult(1);
-    render(); save();
+    if (G.visit.length === 3) { G.locked = true; render(); save(); later(endVisit, 450); return; }
+    setMult(1); render(); save();
   }
 
   function endVisit() {
     const p = G.players[G.cur];
     if (!G.visitBust) {
-      const s = visitSum();
-      p.score -= s; p.pts += s;
-      p.best = Math.max(p.best, s);
-      if (s === 180) { p.n180++; toast('ONE HUNDRED AND EIGHTY!', true); }
+      const s = visitSum(); p.score -= s; p.pts += s; p.best = Math.max(p.best, s);
+      if (s === 180) { p.n180++; toast('180!', true); }
     }
-    G.visit = []; G.visitBust = false;
+    G.visit = []; G.visitBust = false; G.locked = false;
     G.cur = (G.cur + 1) % G.players.length;
-    mult = 1; setMult(1);
-    render(); save();
+    setMult(1); render(); save();
   }
 
   function legWon() {
-    const p = G.players[G.cur];
-    p.legs++;
-    if (p.legs >= G.legsToWin) {
-      G.over = true; G.winner = G.cur;
-      render(); save(); showResult(true);
-      return;
-    }
-    toast(p.name + ' gewinnt das Leg!', true);
-    render(); save();
-    setTimeout(() => {
-      snapshot();
+    const p = G.players[G.cur]; p.legs++; G.locked = true;
+    if (p.legs >= G.legsToWin) { G.over = true; G.winner = G.cur; render(); save(); show('win'); return; }
+    toast(p.name + ' takes the leg', true); render(); save();
+    later(() => {
       G.players.forEach(x => x.score = G.start);
       G.leg++; G.starter = (G.starter + 1) % G.players.length; G.cur = G.starter;
-      G.visit = []; G.visitBust = false;
+      G.visit = []; G.visitBust = false; G.locked = false;
       render(); save();
-    }, 1400);
+    }, 1500);
   }
 
   function undo() {
     if (!undoStack.length) return;
+    clearTimeout(timer); timer = null;
     G = JSON.parse(undoStack.pop());
-    $('#overlay').classList.add('hidden');
-    mult = 1; setMult(1);
-    render(); save();
+    G.locked = false;
+    setMult(1); show('game'); save();
   }
 
-  function skipVisit() {
-    if (G.over || G.visitBust) return;
+  function endVisitEarly() {
+    if (G.over || G.visitBust || G.locked) return;
     snapshot();
-    // fill remaining darts with misses for stats
     const p = G.players[G.cur];
     while (G.visit.length < 3) { G.visit.push({ n: 0, m: 1, v: 0 }); p.darts++; }
     endVisit();
   }
 
-  /* ---------- Checkout suggestions ---------- */
+  /* ---------- checkout finder ---------- */
   const SEGS = [];
-  for (let n = 20; n >= 1; n--) { SEGS.push({ l: 'T' + n, v: n * 3, d: false }); }
+  for (let n = 20; n >= 1; n--) SEGS.push({ l: 'T' + n, v: n * 3, d: false });
   SEGS.push({ l: 'Bull', v: 50, d: true });
-  for (let n = 20; n >= 1; n--) { SEGS.push({ l: 'D' + n, v: n * 2, d: true }); }
-  for (let n = 20; n >= 1; n--) { SEGS.push({ l: 'S' + n, v: n, d: false }); }
+  for (let n = 20; n >= 1; n--) SEGS.push({ l: 'D' + n, v: n * 2, d: true });
+  for (let n = 20; n >= 1; n--) SEGS.push({ l: 'S' + n, v: n, d: false });
   SEGS.push({ l: '25', v: 25, d: false });
-  const FINISH = SEGS.filter(s => G_isFinish(s));
-  function G_isFinish(s) { return s.d; }
-
-  const coCache = {};
+  const cache = {};
   function checkout(rem, darts, dbl) {
     const key = rem + '|' + darts + '|' + dbl;
-    if (key in coCache) return coCache[key];
-    let res = null;
-    const fin = dbl ? SEGS.filter(s => s.d) : SEGS;
-    outer:
-    for (let k = 1; k <= darts; k++) {
-      if (k === 1) {
-        for (const f of fin) if (f.v === rem) { res = [f.l]; break outer; }
-      } else if (k === 2) {
-        for (const a of SEGS) { const r = rem - a.v; if (r <= 0) continue;
-          for (const f of fin) if (f.v === r) { res = [a.l, f.l]; break outer; } }
-      } else {
-        for (const a of SEGS) { const r1 = rem - a.v; if (r1 <= 0) continue;
-          for (const b of SEGS) { const r2 = r1 - b.v; if (r2 <= 0) continue;
-            for (const f of fin) if (f.v === r2) { res = [a.l, b.l, f.l]; break outer; } } }
-      }
+    if (key in cache) return cache[key];
+    const fin = dbl ? SEGS.filter(s => s.d) : SEGS; let res = null;
+    out: for (let k = 1; k <= darts; k++) {
+      if (k === 1) { for (const f of fin) if (f.v === rem) { res = [f.l]; break out; } }
+      else if (k === 2) { for (const a of SEGS) { const r = rem - a.v; if (r <= 0) continue; for (const f of fin) if (f.v === r) { res = [a.l, f.l]; break out; } } }
+      else { for (const a of SEGS) { const r1 = rem - a.v; if (r1 <= 0) continue; for (const b of SEGS) { const r2 = r1 - b.v; if (r2 <= 0) continue; for (const f of fin) if (f.v === r2) { res = [a.l, b.l, f.l]; break out; } } } }
     }
-    return coCache[key] = res;
+    return cache[key] = res;
   }
 
-  /* ---------- Rendering ---------- */
-  function avg(p) { return p.darts ? (p.pts / p.darts * 3).toFixed(1) : '–'; }
-
-  function render() {
-    if (!G) return;
-    const el = $('#players');
-    el.className = 'players n' + G.players.length;
-    el.innerHTML = '';
-    const sumNow = visitSum();
-    G.players.forEach((p, i) => {
-      const active = i === G.cur && !G.over;
-      const live = active ? (G.visitBust ? p.score : p.score - sumNow) : p.score;
-      let co = '';
-      if (active && !G.visitBust) {
-        const left = 3 - G.visit.length;
-        if (live > 0 && live <= 170) {
-          const c = checkout(live, left, G.out === 'double');
-          if (c) co = '🎯 ' + c.join(' · ');
-        }
-      }
-      const d = document.createElement('div');
-      d.className = 'pl' + (active ? ' active' : '');
-      d.innerHTML =
-        '<div class="name"><span><span class="dot"></span> ' + esc(p.name) + '</span>' +
-        (G.legsToWin > 1 ? '<span class="legs">Legs ' + p.legs + '</span>' : '') + '</div>' +
-        '<div class="score">' + live + '</div>' +
-        '<div class="stats"><span>Ø ' + avg(p) + '</span><span>Best ' + p.best + '</span><span>180er ' + p.n180 + '</span></div>' +
-        '<div class="co">' + co + '</div>';
-      el.appendChild(d);
-    });
-
-    const v = $('#visit'); v.innerHTML = '';
-    for (let i = 0; i < 3; i++) {
-      const d = G.visit[i];
-      const b = document.createElement('div');
-      b.className = 'd' + (d ? ' filled' : '') + (d && G.visitBust ? ' bust' : '');
-      b.textContent = d ? label(d) : '–';
-      v.appendChild(b);
-    }
-    const t = document.createElement('div'); t.className = 'tot';
-    t.textContent = G.visitBust ? 'BUST' : sumNow; v.appendChild(t);
-
-    $('#gameInfo').textContent = G.start + ' · ' + (G.out === 'double' ? 'Double-Out' : 'Straight-Out') +
-      (G.legsToWin > 1 ? ' · First to ' + G.legsToWin + ' · Leg ' + G.leg : '');
-    const dis = G.over || G.visitBust;
-    $('#pad').querySelectorAll('button').forEach(b => b.disabled = dis);
-    $('#mult').querySelectorAll('button').forEach(b => b.disabled = dis);
-    // Bull: triple nicht möglich
-    updateBull();
-    $('#undoBtn').disabled = !undoStack.length;
-  }
-
-  function label(d) {
-    if (d.n === 0) return 'Miss';
-    if (d.n === 25) return d.m === 2 ? 'Bull' : '25';
-    return ['', 'S', 'D', 'T'][d.m] + d.n;
-  }
-  function esc(s) { return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
-
-  function buildPad() {
-    const pad = $('#pad'); pad.innerHTML = '';
-    for (let n = 1; n <= 20; n++) {
-      const b = document.createElement('button'); b.textContent = n; b.dataset.n = n; pad.appendChild(b);
-    }
-    const bull = document.createElement('button'); bull.textContent = '25'; bull.className = 'bull'; bull.dataset.n = 25; pad.appendChild(bull);
-    const bb = document.createElement('button'); bb.textContent = 'Bull'; bb.className = 'bull'; bb.dataset.n = 'bull'; pad.appendChild(bb);
-    const miss = document.createElement('button'); miss.textContent = 'Miss'; miss.className = 'miss'; miss.dataset.n = 0; pad.style.gridTemplateColumns = 'repeat(5,1fr)'; pad.appendChild(miss);
-  }
-  function updateBull() {
-    const b25 = $('#pad button[data-n="25"]'); if (b25) b25.disabled = b25.disabled || mult === 3;
-  }
+  /* ---------- rendering ---------- */
   function setMult(m) {
     mult = m;
     $('#mult').querySelectorAll('button').forEach(b => b.classList.toggle('on', Number(b.dataset.m) === m));
-    updateBull();
+    $('#mult [data-m="3"]').classList.toggle('t', true);
+    const k = $('.k25'); if (k) k.disabled = m === 3 || (G && (G.over || G.visitBust || G.locked));
   }
 
-  $('#mult').addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b || b.disabled) return;
-    setMult(Number(b.dataset.m));
-  });
-  $('#pad').addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b || b.disabled) return;
-    const n = b.dataset.n;
-    if (n === 'bull') { throwDart(25, 2); return; }
-    const num = Number(n);
-    if (num === 0) { throwDart(0, 1); return; }
-    throwDart(num, num === 25 ? Math.min(mult, 2) : mult);
-  });
-  $('#undoBtn').addEventListener('click', undo);
-  $('#skipBtn').addEventListener('click', skipVisit);
-  $('#menuBtn').addEventListener('click', () => {
-    if (G && !G.over && !confirm('Laufendes Spiel verwerfen und neues einrichten?')) return;
-    G = null; undoStack = []; save(); showSetup();
-  });
-  $('#startBtn').addEventListener('click', newGame);
+  function render() {
+    if (!G) return;
+    $('#gInfo').textContent = G.start + ' · ' + (G.out === 'double' ? 'Double-Out' : 'Straight-Out');
+    $('#gLeg').textContent = 'Leg ' + G.leg + (G.legsToWin > 1 ? ' · First to ' + G.legsToWin : '');
+    const sum = visitSum(), many = G.players.length > 2;
+    const box = $('#players'); box.innerHTML = '';
+    G.players.forEach((p, i) => {
+      const act = i === G.cur && !G.over;
+      const live = act && !G.visitBust ? p.score - sum : p.score;
+      let chip = '';
+      if (act && !G.visitBust && live > 0 && live <= 170) {
+        const c = checkout(live, 3 - G.visit.length, G.out === 'double');
+        if (c) chip = '<div class="chip">' + ICON.flag + 'Checkout: ' + c.join(' · ') + '</div>';
+      }
+      const el = document.createElement('div');
+      el.className = 'pl' + (act ? ' active' : '');
+      el.innerHTML =
+        (act ? '<span class="tag">Throwing</span>' : '') +
+        '<div class="row1"><div class="nm"><i></i><em>' + esc(p.name) + '</em></div>' +
+        (act ? chip : '<span class="wait">' + (G.legsToWin > 1 ? 'Legs ' + p.legs + ' · ' : '') + 'Waiting at oche</span>') + '</div>' +
+        '<div class="row2"><div class="sc">' + live + '</div>' +
+        '<div class="stats"><div><span>3-Dart Ø</span><b>' + avg(p) + '</b></div><u></u><div><span>Best</span><b>' + p.best + '</b></div><u></u><div><span>180s</span><b class="hi">' + p.n180 + '</b></div></div></div>';
+      box.appendChild(el);
+    });
 
-  /* ---------- Overlay / Result ---------- */
-  function showResult() {
+    const v = $('#visit');
+    let h = '<div class="vt">Visit ' + (Math.floor(G.players[G.cur].darts / 3) + 1) + '<b>Turn score</b></div>';
+    for (let i = 0; i < 3; i++) {
+      const d = G.visit[i];
+      const cls = d ? ('f' + (G.visitBust ? ' bust' : '')) : (i === G.visit.length && !G.locked ? 'nx' : '');
+      h += '<div class="slot ' + cls + '"><small>D' + (i + 1) + '</small><b>' + (d ? label(d) : '–') + '</b></div>';
+    }
+    h += '<div class="tot' + (G.visitBust ? ' bust' : '') + '"><small>TOTAL</small><b>' + (G.visitBust ? 'BUST' : sum) + '</b></div>';
+    v.innerHTML = h;
+
+    const dis = G.over || G.visitBust || G.locked;
+    $('#pad').querySelectorAll('button').forEach(b => b.disabled = dis);
+    $('#mult').querySelectorAll('button').forEach(b => b.disabled = dis);
+    $('#skipBtn').disabled = dis;
+    $('#undoBtn').disabled = !undoStack.length;
+    const k = $('.k25'); if (k) k.disabled = dis || mult === 3;
+  }
+
+  function buildPad() {
+    const pad = $('#pad'); let h = '';
+    for (let n = 1; n <= 20; n++) h += '<button data-n="' + n + '">' + n + '</button>';
+    h += '<div class="wide">' +
+      '<button class="k25" data-n="25">25<small>OUTER</small></button>' +
+      '<button class="kbull" data-n="bull">BULL<small>50 PTS</small></button>' +
+      '<button class="kmiss" data-n="0">MISS<small>0 PTS</small></button></div>';
+    pad.innerHTML = h;
+  }
+
+  /* winner screen */
+  function renderWin() {
     const w = G.players[G.winner];
-    let rows = G.players.map(p =>
-      '<tr><td>' + esc(p.name) + '</td><td>' + p.legs + '</td><td>' + avg(p) + '</td><td>' + p.best + '</td><td>' + p.n180 + '</td></tr>').join('');
-    $('#overlayBox').innerHTML =
-      '<div style="font-size:2.6rem">🏆</div><h2>' + esc(w.name) + ' gewinnt!</h2>' +
-      '<table><tr><th>Spieler</th><th>Legs</th><th>Ø/3 Darts</th><th>Best</th><th>180er</th></tr>' + rows + '</table>' +
-      '<div class="row"><button class="ghost" id="ovUndo">↶ Letzten Wurf zurück</button><button class="primary" id="ovNew" style="padding:12px">Neues Spiel</button></div>';
-    $('#overlay').classList.remove('hidden');
-    $('#ovUndo').onclick = undo;
-    $('#ovNew').onclick = () => { $('#overlay').classList.add('hidden'); newGame(); };
+    const others = G.players.filter((_, i) => i !== G.winner).sort((a, b) => b.legs - a.legs || a.score - b.score);
+    const opp = others[0];
+    const sorted = G.players.map((p, i) => ({ p, i })).sort((a, b) => b.p.legs - a.p.legs || a.p.score - b.p.score);
+    const pct = (a, b) => Math.max(8, Math.min(100, b ? a / Math.max(a, b) * 100 : 100));
+    const wa = Number(avg(w)) || 0, oa = opp ? Number(avg(opp)) || 0 : 0;
+    const rows = sorted.map(({ p, i }) =>
+      '<div class="r' + (i === G.winner ? ' w' : '') + '"><div class="b">' + esc(p.name.charAt(0).toUpperCase()) + '</div>' +
+      '<div class="n">' + esc(p.name) + '<small>' + (i === G.winner ? 'Winner' : 'Runner-up') + ' · ' + p.legs + (p.legs === 1 ? ' leg' : ' legs') + '</small></div>' +
+      '<div class="c">' + p.legs + '</div></div>').join('');
+    const oppTxt = (v) => opp ? '<span>Opp. ' + v + '</span>' : '';
+    $('#winBody').innerHTML =
+      '<div class="hero"><div class="medal">' + ICON.trophy + '</div>' +
+      '<span class="pill">' + ICON.flag.replace('<svg', '<svg style="font-size:14px"') + 'Match decider</span>' +
+      '<h2>' + esc(w.name) + ' wins!</h2>' +
+      '<span class="sub">' + (opp ? 'Match won ' + w.legs + ' – ' + opp.legs + ' in legs' : 'Game shot') + '</span>' +
+      '<div class="res">' + rows + '</div></div>' +
+      '<div class="card perf"><h3>Match performance</h3>' +
+      '<div class="hco"><div><div class="lbl">Highest checkout</div><div class="chips">' + (w.hiCoPath.length ? w.hiCoPath.map(x => '<i>' + esc(x) + '</i>').join('') : '') + '</div></div>' +
+      '<div class="v">' + (w.hiCo || '–') + '<small>' + (w.hiCo ? 'Checked out' : '') + '</small></div></div>' +
+      '<div class="grid">' +
+      '<div class="tile"><div class="lbl">3-Dart average</div><div class="v"><b>' + avg(w) + '</b>' + oppTxt(avg(opp || w)) + '</div><div class="bar"><i style="width:' + pct(wa, oa) + '%"></i></div></div>' +
+      '<div class="tile"><div class="lbl">Best turn score</div><div class="v"><b>' + w.best + '</b>' + oppTxt(opp ? opp.best : 0) + '</div><div class="bar"><i style="width:' + pct(w.best, opp ? opp.best : 0) + '%"></i></div></div>' +
+      '<div class="tile"><div class="lbl">Maximums (180)</div><div class="v"><b>' + w.n180 + '</b>' + oppTxt(opp ? opp.n180 : 0) + '</div></div>' +
+      '<div class="tile"><div class="lbl">Total darts</div><div class="v"><b>' + w.darts + '</b>' + oppTxt(opp ? opp.darts : 0) + '</div></div>' +
+      '</div></div>' +
+      '<div class="winacts"><button class="cta" id="rematchBtn">' + ICON.play + 'New match / Rematch</button>' +
+      '<button class="ghost" id="winUndo">' + ICON.undo.replace('<svg', '<svg style="font-size:16px"') + 'Undo final winning dart (resume leg)</button></div>';
+    $('#rematchBtn').onclick = () => { cfg.names.splice(0, G.players.length, ...G.players.map(p => p.name)); newGame(); };
+    $('#winUndo').onclick = undo;
   }
 
   let tt;
@@ -459,19 +495,48 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
     clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 1300);
   }
 
-  function showSetup() {
-    $('#game').classList.add('hidden'); $('#setup').classList.remove('hidden');
-    syncSeg('#modeSeg', cfg.start); syncSeg('#outSeg', cfg.out); syncSeg('#legSeg', cfg.legs); syncSeg('#plSeg', cfg.count);
-    renderNames();
-  }
-  function showGame() {
-    $('#setup').classList.add('hidden'); $('#game').classList.remove('hidden');
-    render(); if (G.over) showResult();
+  function show(which) {
+    $('#setup').classList.toggle('hidden', which !== 'setup');
+    $('#game').classList.toggle('hidden', which === 'setup');
+    $('#win').classList.toggle('hidden', which !== 'win');
+    $('#hdrTitle').textContent = which === 'setup' ? 'Match Setup' : 'Live Match';
+    $('#backBtn').style.visibility = which === 'setup' ? 'hidden' : 'visible';
+    if (which === 'setup') {
+      syncSeg('#modeSeg', cfg.start); syncSeg('#outSeg', cfg.out); syncSeg('#legSeg', cfg.legs); syncSeg('#plSeg', cfg.count); renderRoster();
+    } else { render(); if (which === 'win') renderWin(); }
   }
 
-  /* ---------- Init ---------- */
+  /* ---------- events ---------- */
+  $('#mult').addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled) setMult(Number(b.dataset.m)); });
+  $('#pad').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b || b.disabled) return;
+    const n = b.dataset.n;
+    if (n === 'bull') return throwDart(25, 2);
+    const num = Number(n);
+    if (num === 0) return throwDart(0, 1);
+    throwDart(num, num === 25 ? Math.min(mult, 2) : mult);
+  });
+  $('#undoBtn').addEventListener('click', undo);
+  $('#skipBtn').addEventListener('click', endVisitEarly);
+  const leave = () => {
+    if (G && !G.over && !confirm('Discard the running match and go back to setup?')) return;
+    G = null; undoStack = []; clearTimeout(timer); save(); show('setup');
+  };
+  $('#newBtn').addEventListener('click', leave);
+  $('#backBtn').addEventListener('click', leave);
+  $('#startBtn').addEventListener('click', newGame);
+
   buildPad();
-  if (load() && G) showGame(); else showSetup();
+  if (load()) {
+    if (G.locked && !G.over) {   // reload mid-animation: finish the pending step
+      G.locked = false;
+      if (G.visitBust || G.visit.length >= 3) endVisit();
+      else if (G.players.some(p => p.score === 0)) {
+        G.players.forEach(x => x.score = G.start); G.leg++; G.starter = (G.starter + 1) % G.players.length; G.cur = G.starter; G.visit = [];
+      }
+    }
+    show(G.over ? 'win' : 'game');
+  } else show('setup');
 })();
 </script>
 </body>

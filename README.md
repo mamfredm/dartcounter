@@ -1,13 +1,15 @@
-# 🎯 Dart-Zähler
+# 🎯 Dart Counter
 
-Mobiler Dart-Zähler als einzelne `index.html` – ohne Build, ohne Abhängigkeiten, funktioniert offline.
+Mobile dart scoreboard in a single `index.html` – no build step, no tracking, works offline.
+Design: "Pub Oche Arcade" (brass on dark green), made in Google Stitch.
 
-- 301 / 501 / 701, Double-Out oder Straight-Out
-- 1–4 Spieler, Legs-Modus (First to N)
-- Eingabe pro Dart (Single/Double/Triple, 25, Bull, Miss)
-- Bust-Erkennung, Checkout-Vorschläge, Ø pro 3 Darts, Best Visit, 180er
-- Rückgängig-Funktion, Spielstand bleibt im Browser gespeichert
+- 301 / 501 / 701, Double-Out or Straight-Out
+- 1–4 players, legs to win (1 / 2 / 3 / 5), throw order with swap
+- Per-dart input (Single / Double / Triple, 25, Bull, Miss)
+- Bust detection, checkout suggestions, 3-dart average, best visit, 180s
+- Winner screen with match stats (highest checkout, averages, total darts)
+- Undo (also after the winning dart); match state is stored in the browser
 
-Schrift: Bungee (SIL OFL, siehe `OFL-Bungee.txt`), lokal eingebunden wie in bouldern.
+Fonts are self-hosted (no Google Fonts request, GDPR-friendly): Anton and Inter, both SIL OFL – see `fonts/`.
 
-Einfach `index.html` öffnen oder per GitHub Pages hosten.
+Open `index.html` or host it with GitHub Pages (Settings → Pages → main / root).
