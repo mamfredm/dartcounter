@@ -8,6 +8,8 @@ Design: "Pub Oche Arcade" (brass on dark green), made in Google Stitch.
 - Per-dart input (Single / Double / Triple, 25, Bull, Miss)
 - Bust detection, checkout suggestions, 3-dart average, best visit, 180s
 - Winner screen with match stats (highest checkout, averages, total darts)
+- Responsive: phones (portrait + landscape), tablets and desktop; the keypad fills the screen height so no scrolling mid-game
+- Installable PWA (Add to Home Screen), works offline, keeps the screen awake during a match
 - Undo (also after the winning dart); match state is stored in the browser
 
 Fonts are self-hosted (no Google Fonts request, GDPR-friendly): Anton and Inter, both SIL OFL – see `fonts/`.
